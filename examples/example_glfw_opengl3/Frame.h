@@ -24,11 +24,13 @@ private:
     int m_Count_Faces_V;
     bool m_Close_U = false;
     bool m_Close_V = false;
+    bool m_Show_Edges = false;
 
 public:
+    FACE AddFace(const int& faces_index, const int& sx, const int& sy, const int& verts_index, int& edges_index);
     int AddVertex(int vVertex);
     int AddEdge(int vEdge);
-    void init();
+    void Compute();
     void draw_face(const FACE& vFace);
     const FACE getLeftFace(const FACE& ref);
     const FACE getRightFace(const FACE& ref);

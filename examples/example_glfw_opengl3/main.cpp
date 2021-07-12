@@ -149,7 +149,7 @@ int main(int, char**)
     ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 
     Frame frame;
-    frame.init();
+    frame.Compute();
 
     // Main loop
     while (!glfwWindowShouldClose(window))

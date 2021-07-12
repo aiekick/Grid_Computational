@@ -14,13 +14,85 @@ int Frame::AddEdge(int vEdge)
     return vEdge;
 }
 
-/*void Frame::AddFace(int cx, int cy)
+FACE Frame::AddFace(const int& faces_index, const int& sx, const int& sy, const int& verts_index, int& edges_index)
 {
+    FACE face;
 
+    int cx = faces_index % (sx - 1);
+    int cy = floor(faces_index / (double)(sx - 1));
+
+    int v0 = verts_index;
+    int v1 = v0 + 1;
+    int v2 = v1 + sx;
+    int v3 = v2 - 1;
+
+    if (m_Close_U && m_Close_V)
+    {
+        if (cx == (sx - 2) && cy == (sy - 2))
+        {
+            v0 = verts_index + cx;
+            v1 = verts_index;
+            v2 = 0;
+            v3 = sx - 2;
+        }
+        else
+        {
+            v2--;
+            v3--;
+            if (cx == (sx - 2))
+            {
+                v1 = v0 - (sx - 2);
+                v2 = v1 + (sx - 1);
+            }
+            if (cy == (sy - 2))
+            {
+                v0 = verts_index + cx;
+                v1 = v0 + 1;
+                v3 = v0 - cy * (sx - 1);
+                v2 = v3 + 1;
+            }
+        }
+    }
+    else
+    {
+        if (m_Close_U)
+        {
+            v2--;
+            v3--;
+            if (cx == (sx - 2))
+            {
+                v1 = v0 - (sx - 2);
+                v2 = v1 + (sx - 1);
+            }
+        }
+
+        if (m_Close_V)
+        {
+            if (cy == (sy - 2))
+            {
+                v0 = verts_index + cx;
+                v1 = v0 + 1;
+                v3 = v0 - cy * sx;
+                v2 = v3 + 1;
+            }
+        }
+    }
+    
+
+    face.v[0] = v0;
+    face.v[1] = v1;
+    face.v[2] = v2;
+    face.v[3] = v3;
+
+    //face.e[0] = faces_index * (cx ? 3: 4);
+    //face.e[1] = AddEdge(edges_index++);
+    //face.e[2] = AddEdge(edges_index++);
+    //face.e[3] = AddEdge(edges_index++);
+
+    return face;
 }
-*/
 
-void Frame::init()
+void Frame::Compute()
 {
     /* poly p
       v03 -e02- v02
@@ -44,69 +116,28 @@ void Frame::init()
     int verts_index = 0;
     int edge_index = 0;
     int face_index = 0;
-    int last_row_new_edges = 0;
+
     for (int v = 0; v < m_Count_Vertexs_V; ++v)
     {
-        int last_new_edges = 0;
-        int row_new_edges = 0;
         for (int u = 0; u < m_Count_Vertexs_U; ++u)
         {
             if (u < m_Count_Faces_U && v < m_Count_Faces_V)
             {
-                FACE face;
-
-                /////////////////////////////////////////////////////
-                /////////////////////////////////////////////////////
-                /////////////////////////////////////////////////////
-
-                int new_edges = 0;
-                face.v[0] = verts_index;
-                face.v[1] = face.v[0] + 1;
-                face.v[2] = face.v[1] + m_Count_Faces_U;
-                face.v[3] = face.v[2] - 1;
-                if (v == 0)
-                {
-                    face.e[0] = AddEdge(edge_index++); new_edges++;
-                }
-                else
-                {
-                    if (u == 0)
-                    {
-                        face.e[0] = edge_index - last_row_new_edges + 2;
-                    }
-                    else
-                    {
-                        face.e[0] = edge_index - last_row_new_edges + 3;
-                    }
-                }
-                face.e[1] = AddEdge(edge_index++); new_edges++;
-                face.e[2] = AddEdge(edge_index++); new_edges++;
-                if (u == 0)
-                {
-                    face.e[3] = AddEdge(edge_index++); new_edges++;
-                }
-                else
-                {
-                    face.e[3] = edge_index - 2 - last_new_edges;
-                }
-
-                last_new_edges = new_edges;
-                row_new_edges += new_edges;
-
-                /////////////////////////////////////////////////////
-                /////////////////////////////////////////////////////
-                /////////////////////////////////////////////////////
+                FACE face = AddFace(face_index, m_Count_Vertexs_U, m_Count_Vertexs_V, verts_index, edge_index);
 
                 face.cx = u;
                 face.cy = v;
                 face.f = face_index++;// edge_index;
 
                 m_Faces[v * m_Count_Faces_U + u] = face;
-
-                AddVertex(verts_index++);
             }
+
+            if ((m_Close_U && u == (m_Count_Vertexs_U - 2)) ||
+                (m_Close_V && v == (m_Count_Vertexs_V - 2)))
+                continue;
+
+            AddVertex(verts_index++);
         }
-        last_row_new_edges = row_new_edges;
     }
 }
 
@@ -186,33 +217,54 @@ void Frame::draw_face(const FACE& vFace)
     ImGui::PushItemWidth(30.0f);
 
     ImGui::TextColored(getGoodColor(is_V03_Ok), "v%02i", vFace.v[3]); ImGui::SameLine();
-    ImGui::Text(" - "); ImGui::SameLine();
-    ImGui::TextColored(getGoodColor(is_e02_Ok), "e%02i", vFace.e[2]); ImGui::SameLine();
-    ImGui::Text(" - "); ImGui::SameLine();
+    if (m_Show_Edges)
+    {
+        ImGui::Text("---"); ImGui::SameLine();
+        ImGui::TextColored(getGoodColor(is_e02_Ok), "e%02i", vFace.e[2]);
+        ImGui::SameLine();
+        ImGui::Text("---"); ImGui::SameLine();
+    }
+    else
+    {
+        ImGui::Text("-----------"); ImGui::SameLine();
+    }
     ImGui::TextColored(getGoodColor(is_V02_Ok), "v%02i", vFace.v[2]);
 
-    ImGui::Text(" |"); ImGui::SameLine();
-    ImGui::Text("     "); ImGui::SameLine();
-    ImGui::Text("|"); ImGui::SameLine();
-    ImGui::Text("     "); ImGui::SameLine();
-    ImGui::Text("|");
+    if (m_Show_Edges)
+        ImGui::Text(" |       |        |");
+    else
+        ImGui::Text(" |                |");
 
-    ImGui::TextColored(getGoodColor(is_e03_Ok), "e%02i", vFace.e[3]); ImGui::SameLine();
-    ImGui::Text(" - "); ImGui::SameLine();
-    ImGui::Text("%03i", vFace.f); ImGui::SameLine();
-    ImGui::Text(" - "); ImGui::SameLine();
-    ImGui::TextColored(getGoodColor(is_e01_Ok), "e%02i", vFace.e[1]);
-
-    ImGui::Text(" |"); ImGui::SameLine();
-    ImGui::Text("     "); ImGui::SameLine();
-    ImGui::Text("|"); ImGui::SameLine();
-    ImGui::Text("     "); ImGui::SameLine();
-    ImGui::Text("|");
+    if (m_Show_Edges)
+    {
+        ImGui::TextColored(getGoodColor(is_e03_Ok), "e%02i", vFace.e[3]); ImGui::SameLine();
+        ImGui::Text("---"); ImGui::SameLine();
+        ImGui::Text("%03i", vFace.f); ImGui::SameLine();
+        ImGui::Text("---"); ImGui::SameLine();
+        ImGui::TextColored(getGoodColor(is_e01_Ok), "e%02i", vFace.e[1]);
+    }
+    else
+    {
+        ImGui::Text(" |                |");
+    }
+    
+    if (m_Show_Edges)
+        ImGui::Text(" |       |        |");
+    else
+        ImGui::Text(" |                |");
 
     ImGui::TextColored(getGoodColor(is_V00_Ok), "v%02i", vFace.v[0]); ImGui::SameLine();
-    ImGui::Text(" - "); ImGui::SameLine();
-    ImGui::TextColored(getGoodColor(is_e00_Ok), "e%02i", vFace.e[0]); ImGui::SameLine();
-    ImGui::Text(" - "); ImGui::SameLine();
+    if (m_Show_Edges)
+    {
+        ImGui::Text("---"); ImGui::SameLine();
+        ImGui::TextColored(getGoodColor(is_e00_Ok), "e%02i", vFace.e[0]);
+        ImGui::SameLine();
+        ImGui::Text("---"); ImGui::SameLine();
+    }
+    else
+    {
+        ImGui::Text("-----------"); ImGui::SameLine();
+    }
     ImGui::TextColored(getGoodColor(is_V01_Ok), "v%02i", vFace.v[1]);
 
     ImGui::PopItemWidth();
@@ -229,13 +281,14 @@ void Frame::draw()
     bool change = false;
     change |= ImGui::Button("Refresh"); ImGui::SameLine();
     change |= ImGui::Checkbox("Close U", &m_Close_U); ImGui::SameLine();
-    change |= ImGui::Checkbox("Close V", &m_Close_V);
+    change |= ImGui::Checkbox("Close V", &m_Close_V); ImGui::SameLine();
+    change |= ImGui::Checkbox("Show Edges", &m_Show_Edges);
     ImGui::PushItemWidth(200.0f);
     change |= ImGui::InputInt("Count Vertexs U", &m_Count_Vertexs_U);
     change |= ImGui::InputInt("Count Vertexs V", &m_Count_Vertexs_V);
     ImGui::PopItemWidth();
     if (change)
-        init();
+        Compute();
 
     ImGui::Text("Count Vertexs U | V : %i | %i", m_Count_Vertexs_U, m_Count_Vertexs_V);
     ImGui::Text("Count Faces U | V : %i | %i", m_Count_Faces_U, m_Count_Faces_V);
