@@ -14,82 +14,81 @@ int Frame::AddEdge(int vEdge)
     return vEdge;
 }
 
-FACE Frame::AddFace(const int& faces_index, const int& sx, const int& sy, const int& verts_index, int& edges_index)
+void Frame::getVertexIndexs(const int& cx, const int& cy, const int& sx, const int& sy, const int& verts_index, int *out_v)
 {
-    FACE face;
-
-    int cx = faces_index % (sx - 1);
-    int cy = floor(faces_index / (double)(sx - 1));
-
-    int v0 = verts_index;
-    int v1 = v0 + 1;
-    int v2 = v1 + sx;
-    int v3 = v2 - 1;
+    const int lx2 = (sx - 2);
+    const int lx1 = (sx - 1);
+    const int ly2 = (sy - 2);
 
     if (m_Close_U && m_Close_V)
     {
-        if (cx == (sx - 2) && cy == (sy - 2))
+        if (cx == lx2 && cy == ly2)
         {
-            v0 = verts_index + cx;
-            v1 = verts_index;
-            v2 = 0;
-            v3 = sx - 2;
+            out_v[0] = verts_index + cx;
+            out_v[1] = verts_index;
+            out_v[2] = 0;
+            out_v[3] = lx2;
+            return; // fast quit
         }
         else
         {
-            v2--;
-            v3--;
-            if (cx == (sx - 2))
+            out_v[2] = verts_index + sx;
+            out_v[3] = verts_index + lx1;
+
+            if (cx == lx2)
             {
-                v1 = v0 - (sx - 2);
-                v2 = v1 + (sx - 1);
+                out_v[0] = verts_index;
+                out_v[1] = out_v[0] - lx2;
+                out_v[2] = out_v[1] + lx1;
+                return; // fast quit
             }
-            if (cy == (sy - 2))
+            else if (cy == ly2)
             {
-                v0 = verts_index + cx;
-                v1 = v0 + 1;
-                v3 = v0 - cy * (sx - 1);
-                v2 = v3 + 1;
+                out_v[0] = verts_index + cx;
+                out_v[1] = out_v[0] + 1;
+                out_v[3] = out_v[0] - cy * lx1;
+                out_v[2] = out_v[3] + 1;
+                return; // fast quit
+            }
+            else
+            {
+                out_v[1] = out_v[0] + 1;
             }
         }
     }
     else
     {
-        if (m_Close_U)
-        {
-            v2--;
-            v3--;
-            if (cx == (sx - 2))
-            {
-                v1 = v0 - (sx - 2);
-                v2 = v1 + (sx - 1);
-            }
-        }
-
         if (m_Close_V)
         {
-            if (cy == (sy - 2))
+            out_v[2] = out_v[1] + sx;
+            out_v[3] = out_v[2] - 1;
+            if (cy == ly2)
             {
-                v0 = verts_index + cx;
-                v1 = v0 + 1;
-                v3 = v0 - cy * sx;
-                v2 = v3 + 1;
+                out_v[0] = verts_index + cx;
+                out_v[1] = out_v[0] + 1;
+                out_v[3] = out_v[0] - cy * sx;
+                out_v[2] = out_v[3] + 1;
             }
+            return; // fast quit
+        }
+        else if (m_Close_U)
+        {
+            out_v[2] = verts_index + sx;
+            out_v[3] = verts_index + lx1;
+            if (cx == lx2)
+            {
+                out_v[1] = out_v[0] - lx2;
+                out_v[2] = out_v[1] + lx1;
+            }
+            return; // fast quit
+        }
+        else
+        {
+            out_v[2] = out_v[1] + sx;
+            out_v[3] = out_v[2] - 1;
+            return; // fast quit
         }
     }
-    
-
-    face.v[0] = v0;
-    face.v[1] = v1;
-    face.v[2] = v2;
-    face.v[3] = v3;
-
-    //face.e[0] = faces_index * (cx ? 3: 4);
-    //face.e[1] = AddEdge(edges_index++);
-    //face.e[2] = AddEdge(edges_index++);
-    //face.e[3] = AddEdge(edges_index++);
-
-    return face;
 }
 
 void Frame::Compute()
@@ -114,7 +113,6 @@ void Frame::Compute()
     m_Faces = new FACE[m_Count_Faces_U * m_Count_Faces_V];
 
     int verts_index = 0;
-    int edge_index = 0;
     int face_index = 0;
 
     for (int v = 0; v < m_Count_Vertexs_V; ++v)
@@ -123,11 +121,13 @@ void Frame::Compute()
         {
             if (u < m_Count_Faces_U && v < m_Count_Faces_V)
             {
-                FACE face = AddFace(face_index, m_Count_Vertexs_U, m_Count_Vertexs_V, verts_index, edge_index);
+                FACE face;
+
+                getVertexIndexs(u, v, m_Count_Vertexs_U, m_Count_Vertexs_V, verts_index, face.v);
 
                 face.cx = u;
                 face.cy = v;
-                face.f = face_index++;// edge_index;
+                face.f = face_index++;
 
                 m_Faces[v * m_Count_Faces_U + u] = face;
             }

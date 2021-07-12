@@ -27,7 +27,7 @@ private:
     bool m_Show_Edges = false;
 
 public:
-    FACE AddFace(const int& faces_index, const int& sx, const int& sy, const int& verts_index, int& edges_index);
+    void getVertexIndexs(const int& cx, const int& cy, const int& sx, const int& sy, const int& verts_index, int* out_v);
     int AddVertex(int vVertex);
     int AddEdge(int vEdge);
     void Compute();
