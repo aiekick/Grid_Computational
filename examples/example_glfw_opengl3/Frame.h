@@ -2,6 +2,8 @@
 
 #include <vector>
 
+#include "imgui.h"
+
 struct FACE
 {
     int f = 0;
@@ -15,8 +17,12 @@ class Frame
 {
 private:
     FACE* m_Faces = nullptr;
-    std::vector<int> m_Vertexs;
+    std::vector<int> m_Indices;
     std::vector<int> m_Edges;
+    std::vector<ImVec2> m_Vertexs;
+
+    float m_Max_Step = 6.28318f;
+    float m_Sub_Step = 1.0f;
 
     int m_Count_Vertexs_U = 7;
     int m_Count_Vertexs_V = 5;
@@ -28,7 +34,8 @@ private:
 
 public:
     void getVertexIndexs(const int& cx, const int& cy, const int& sx, const int& sy, const int& verts_index, int* out_v);
-    int AddVertex(int vVertex);
+    void AddVertex(float x, float y);
+    int AddIndice(int vIndice);
     int AddEdge(int vEdge);
     void Compute();
     void draw_face(const FACE& vFace);

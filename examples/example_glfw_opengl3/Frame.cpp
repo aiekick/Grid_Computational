@@ -1,11 +1,17 @@
 #include "Frame.h"
-#include "imgui.h"
+
+#define IMGUI_DEFINE_MATH_OPERATORS
 #include "imgui_internal.h"
 
-int Frame::AddVertex(int vVertex)
+void Frame::AddVertex(float x, float y)
 {
-    m_Vertexs.push_back(vVertex);
-    return vVertex;
+    m_Vertexs.push_back(ImVec2(x, y));
+}
+
+int Frame::AddIndice(int vIndice)
+{
+    m_Indices.push_back(vIndice);
+    return vIndice;
 }
 
 int Frame::AddEdge(int vEdge)
@@ -20,6 +26,9 @@ void Frame::getVertexIndexs(const int& cx, const int& cy, const int& sx, const i
     const int lx1 = (sx - 1);
     const int ly2 = (sy - 2);
 
+    out_v[0] = verts_index;
+    out_v[1] = out_v[0] + 1;
+    
     if (m_Close_U && m_Close_V)
     {
         if (cx == lx2 && cy == ly2)
@@ -37,7 +46,6 @@ void Frame::getVertexIndexs(const int& cx, const int& cy, const int& sx, const i
 
             if (cx == lx2)
             {
-                out_v[0] = verts_index;
                 out_v[1] = out_v[0] - lx2;
                 out_v[2] = out_v[1] + lx1;
                 return; // fast quit
@@ -49,10 +57,6 @@ void Frame::getVertexIndexs(const int& cx, const int& cy, const int& sx, const i
                 out_v[3] = out_v[0] - cy * lx1;
                 out_v[2] = out_v[3] + 1;
                 return; // fast quit
-            }
-            else
-            {
-                out_v[1] = out_v[0] + 1;
             }
         }
     }
@@ -105,7 +109,10 @@ void Frame::Compute()
         delete[] m_Faces;
 
     m_Vertexs.clear();
+    m_Indices.clear();
     m_Edges.clear();
+
+    m_Count_Vertexs_U = ceilf(m_Max_Step / std::max(m_Sub_Step, 0.1f));
 
     m_Count_Faces_U = m_Count_Vertexs_U - 1;
     m_Count_Faces_V = m_Count_Vertexs_V - 1;
@@ -113,17 +120,24 @@ void Frame::Compute()
     m_Faces = new FACE[m_Count_Faces_U * m_Count_Faces_V];
 
     int verts_index = 0;
+    int vert_index_for_face = 0; // custom index for comptue poly
     int face_index = 0;
+
+    float step_f = m_Max_Step / (float)(m_Count_Vertexs_U - 1);
+
+    float t = 0.0f;
 
     for (int v = 0; v < m_Count_Vertexs_V; ++v)
     {
         for (int u = 0; u < m_Count_Vertexs_U; ++u)
         {
+            t = 0.0f + u * step_f;
+
             if (u < m_Count_Faces_U && v < m_Count_Faces_V)
             {
                 FACE face;
 
-                getVertexIndexs(u, v, m_Count_Vertexs_U, m_Count_Vertexs_V, verts_index, face.v);
+                getVertexIndexs(u, v, m_Count_Vertexs_U, m_Count_Vertexs_V, vert_index_for_face, face.v);
 
                 face.cx = u;
                 face.cy = v;
@@ -132,11 +146,15 @@ void Frame::Compute()
                 m_Faces[v * m_Count_Faces_U + u] = face;
             }
 
+            AddVertex(cosf(t) * 200.0f, sin(t) * 200.0f);
+
+            AddIndice(verts_index++);
+
             if ((m_Close_U && u == (m_Count_Vertexs_U - 2)) ||
                 (m_Close_V && v == (m_Count_Vertexs_V - 2)))
                 continue;
 
-            AddVertex(verts_index++);
+            vert_index_for_face++;
         }
     }
 }
@@ -216,11 +234,11 @@ void Frame::draw_face(const FACE& vFace)
 
     ImGui::PushItemWidth(30.0f);
 
-    ImGui::TextColored(getGoodColor(is_V03_Ok), "v%02i", vFace.v[3]); ImGui::SameLine();
+    ImGui::TextColored(getGoodColor(is_V03_Ok), "v%03i", vFace.v[3]); ImGui::SameLine();
     if (m_Show_Edges)
     {
         ImGui::Text("---"); ImGui::SameLine();
-        ImGui::TextColored(getGoodColor(is_e02_Ok), "e%02i", vFace.e[2]);
+        ImGui::TextColored(getGoodColor(is_e02_Ok), "e%03i", vFace.e[2]);
         ImGui::SameLine();
         ImGui::Text("---"); ImGui::SameLine();
     }
@@ -228,7 +246,7 @@ void Frame::draw_face(const FACE& vFace)
     {
         ImGui::Text("-----------"); ImGui::SameLine();
     }
-    ImGui::TextColored(getGoodColor(is_V02_Ok), "v%02i", vFace.v[2]);
+    ImGui::TextColored(getGoodColor(is_V02_Ok), "v%03i", vFace.v[2]);
 
     if (m_Show_Edges)
         ImGui::Text(" |       |        |");
@@ -237,11 +255,11 @@ void Frame::draw_face(const FACE& vFace)
 
     if (m_Show_Edges)
     {
-        ImGui::TextColored(getGoodColor(is_e03_Ok), "e%02i", vFace.e[3]); ImGui::SameLine();
+        ImGui::TextColored(getGoodColor(is_e03_Ok), "e%03i", vFace.e[3]); ImGui::SameLine();
         ImGui::Text("---"); ImGui::SameLine();
         ImGui::Text("%03i", vFace.f); ImGui::SameLine();
         ImGui::Text("---"); ImGui::SameLine();
-        ImGui::TextColored(getGoodColor(is_e01_Ok), "e%02i", vFace.e[1]);
+        ImGui::TextColored(getGoodColor(is_e01_Ok), "e%03i", vFace.e[1]);
     }
     else
     {
@@ -253,11 +271,11 @@ void Frame::draw_face(const FACE& vFace)
     else
         ImGui::Text(" |                |");
 
-    ImGui::TextColored(getGoodColor(is_V00_Ok), "v%02i", vFace.v[0]); ImGui::SameLine();
+    ImGui::TextColored(getGoodColor(is_V00_Ok), "v%03i", vFace.v[0]); ImGui::SameLine();
     if (m_Show_Edges)
     {
         ImGui::Text("---"); ImGui::SameLine();
-        ImGui::TextColored(getGoodColor(is_e00_Ok), "e%02i", vFace.e[0]);
+        ImGui::TextColored(getGoodColor(is_e00_Ok), "e%03i", vFace.e[0]);
         ImGui::SameLine();
         ImGui::Text("---"); ImGui::SameLine();
     }
@@ -265,7 +283,7 @@ void Frame::draw_face(const FACE& vFace)
     {
         ImGui::Text("-----------"); ImGui::SameLine();
     }
-    ImGui::TextColored(getGoodColor(is_V01_Ok), "v%02i", vFace.v[1]);
+    ImGui::TextColored(getGoodColor(is_V01_Ok), "v%03i", vFace.v[1]);
 
     ImGui::PopItemWidth();
 
@@ -284,9 +302,11 @@ void Frame::draw()
     change |= ImGui::Checkbox("Close V", &m_Close_V); ImGui::SameLine();
     change |= ImGui::Checkbox("Show Edges", &m_Show_Edges);
     ImGui::PushItemWidth(200.0f);
-    change |= ImGui::InputInt("Count Vertexs U", &m_Count_Vertexs_U);
+    change |= ImGui::InputInt("Count Vertexs U", &m_Count_Vertexs_U); ImGui::SameLine(350.0f);
     change |= ImGui::InputInt("Count Vertexs V", &m_Count_Vertexs_V);
     ImGui::PopItemWidth();
+    change |= ImGui::SliderFloat("Max Step", &m_Max_Step, 0.1f, 6.28318f, "%.5f");
+    change |= ImGui::SliderFloat("Sub Step", &m_Sub_Step, 0.1f, 6.28318f, "%.5f");
     if (change)
         Compute();
 
@@ -313,30 +333,65 @@ void Frame::draw()
 
     ImGui::End();
 
+    ImGui::Begin("Indices");
+
+    bool is_I_Ok = false;
+    for (size_t i = 0; i < m_Indices.size(); i++)
+    {
+        is_I_Ok = true;
+        if (i < m_Indices.size() - 1)
+            is_I_Ok = (m_Indices[i] != m_Indices[i + 1]);
+
+        ImGui::TextColored(getGoodColor(is_I_Ok), "v%02i", m_Indices[i]);
+    }
+
+    ImGui::End();
+
     ImGui::Begin("Vertexs");
 
     bool is_V_Ok = false;
     for (size_t i = 0; i < m_Vertexs.size(); i++)
     {
-        is_V_Ok = true;
-        if (i < m_Vertexs.size() - 1)
-            is_V_Ok = (m_Vertexs[i] != m_Vertexs[i + 1]);
-
-        ImGui::TextColored(getGoodColor(is_V_Ok), "v%02i", m_Vertexs[i]);
+        ImGui::Text("v%03i : %.2f, %.2f", i, m_Vertexs[i].x, m_Vertexs[i].y);
     }
 
     ImGui::End();
 
-    ImGui::Begin("Edges");
-
-    bool is_E_Ok = false;
-    for (size_t i = 0; i < m_Edges.size(); i++)
+    if (m_Show_Edges)
     {
-        is_V_Ok = true;
-        if (i < m_Edges.size() - 1)
-            is_E_Ok = (m_Edges[i] != m_Edges[i + 1]);
+        ImGui::Begin("Edges");
 
-        ImGui::TextColored(getGoodColor(is_E_Ok), "e%02i", m_Edges[i]);
+        bool is_E_Ok = false;
+        for (size_t i = 0; i < m_Edges.size(); i++)
+        {
+            is_V_Ok = true;
+            if (i < m_Edges.size() - 1)
+                is_E_Ok = (m_Edges[i] != m_Edges[i + 1]);
+
+            ImGui::TextColored(getGoodColor(is_E_Ok), "e%03i", m_Edges[i]);
+        }
+
+        ImGui::End();
+    }
+
+    ImGui::Begin("Shape");
+
+    auto win = ImGui::GetCurrentWindowRead();
+    auto draw_list = win->DrawList;
+    auto win_pos = ImGui::GetWindowPos();
+    auto win_size = ImGui::GetWindowSize();
+    auto center = win_pos + win_size * 0.5f;
+
+    ImVec2 p0, p1;
+    for (size_t i = 0; i < m_Vertexs.size(); i++)
+    {
+        if (i)
+        {
+            p0 = m_Vertexs[i-1] + center;
+            p1 = m_Vertexs[i] + center;
+            draw_list->AddLine(p0, p1, ImGui::GetColorU32(ImVec4(1,1,1,1)), 2.0f);
+            draw_list->AddCircleFilled(p1, 5.0f, ImGui::GetColorU32(ImVec4(0, 1, 0, 1)));
+        }
     }
 
     ImGui::End();
