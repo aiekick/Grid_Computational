@@ -33,7 +33,7 @@ private:
     bool m_Show_Edges = false;
 
 public:
-    void getVertexIndexs(const int& cx, const int& cy, const int& sx, const int& sy, const int& verts_index, int* out_v);
+    void getVertexIndexs(const int& cx, const int& cy, const int& sx, const int& sy, int* out_v);
     void AddVertex(float x, float y);
     int AddIndice(int vIndice);
     int AddEdge(int vEdge);

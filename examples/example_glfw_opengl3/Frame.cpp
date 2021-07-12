@@ -20,76 +20,86 @@ int Frame::AddEdge(int vEdge)
     return vEdge;
 }
 
-void Frame::getVertexIndexs(const int& cx, const int& cy, const int& sx, const int& sy, const int& verts_index, int *out_v)
+void Frame::getVertexIndexs(const int& cx, const int& cy, const int& sx, const int& sy, int *out_v)
 {
     const int lx2 = (sx - 2);
     const int lx1 = (sx - 1);
     const int ly2 = (sy - 2);
 
-    out_v[0] = verts_index;
-    out_v[1] = out_v[0] + 1;
-    
     if (m_Close_U && m_Close_V)
     {
+        out_v[0] = cx + lx1 * (cy);
+        out_v[1] = out_v[0] + 1;
+        out_v[3] = cx + lx1 * (cy + 1);
+        out_v[2] = out_v[3] + 1;
+
         if (cx == lx2 && cy == ly2)
         {
-            out_v[0] = verts_index + cx;
-            out_v[1] = verts_index;
+            out_v[3] = cx;
             out_v[2] = 0;
-            out_v[3] = lx2;
+            out_v[1] = out_v[0] - lx2;
             return; // fast quit
         }
         else
         {
-            out_v[2] = verts_index + sx;
-            out_v[3] = verts_index + lx1;
-
-            if (cx == lx2)
+            if (cy == ly2)
+            {
+                out_v[3] = cx;
+                out_v[2] = out_v[3] + 1;
+                out_v[1] = out_v[0] + 1;
+                return; // fast quit
+            }
+            else if (cx == lx2)
             {
                 out_v[1] = out_v[0] - lx2;
                 out_v[2] = out_v[1] + lx1;
-                return; // fast quit
-            }
-            else if (cy == ly2)
-            {
-                out_v[0] = verts_index + cx;
-                out_v[1] = out_v[0] + 1;
-                out_v[3] = out_v[0] - cy * lx1;
-                out_v[2] = out_v[3] + 1;
                 return; // fast quit
             }
         }
     }
-    else
+    else // ok
     {
         if (m_Close_V)
         {
-            out_v[2] = out_v[1] + sx;
-            out_v[3] = out_v[2] - 1;
-            if (cy == ly2)
+            out_v[0] = cx + lx1 * (cy);
+            out_v[1] = out_v[0] + 1;
+            if (cy < ly2)
             {
-                out_v[0] = verts_index + cx;
-                out_v[1] = out_v[0] + 1;
-                out_v[3] = out_v[0] - cy * sx;
+                out_v[3] = cx + lx1 * (cy + 1);
                 out_v[2] = out_v[3] + 1;
+                return; // fast quit
             }
-            return; // fast quit
+            else
+            {
+                out_v[3] = cx;
+                out_v[2] = out_v[3] + 1;
+                return; // fast quit
+            }
         }
         else if (m_Close_U)
         {
-            out_v[2] = verts_index + sx;
-            out_v[3] = verts_index + lx1;
-            if (cx == lx2)
+            out_v[0] = cx + lx1 * (cy);
+            out_v[3] = cx + lx1 * (cy + 1);
+            
+            if (cx < lx2)
+            {
+                out_v[1] = out_v[0] + 1;
+                out_v[2] = out_v[3] + 1;
+                return; // fast quit
+            }
+            else
             {
                 out_v[1] = out_v[0] - lx2;
                 out_v[2] = out_v[1] + lx1;
+                return; // fast quit
             }
-            return; // fast quit
         }
         else
         {
-            out_v[2] = out_v[1] + sx;
-            out_v[3] = out_v[2] - 1;
+            out_v[0] = cx + sx * (cy);
+            out_v[1] = out_v[0] + 1;
+            out_v[3] = cx + sx * (cy + 1);
+            out_v[2] = out_v[3] + 1;
             return; // fast quit
         }
     }
@@ -112,24 +122,25 @@ void Frame::Compute()
     m_Indices.clear();
     m_Edges.clear();
 
-    m_Count_Vertexs_U = ceilf(m_Max_Step / std::max(m_Sub_Step, 0.1f));
+    //m_Count_Vertexs_U = ceilf(m_Max_Step / std::max(m_Sub_Step, 0.1f)) - (m_Close_U ? 1 : 0);
+    int count_U = ceilf(m_Max_Step / std::max(m_Sub_Step, 0.1f)) - (m_Close_U ? 1 : 0);
+    int count_V = m_Count_Vertexs_V - (m_Close_V ? 1 : 0);
 
-    m_Count_Faces_U = m_Count_Vertexs_U - 1;
-    m_Count_Faces_V = m_Count_Vertexs_V - 1;
+    m_Count_Faces_U = count_U - 1;
+    m_Count_Faces_V = count_V - 1;
 
     m_Faces = new FACE[m_Count_Faces_U * m_Count_Faces_V];
 
     int verts_index = 0;
-    int vert_index_for_face = 0; // custom index for comptue poly
     int face_index = 0;
 
-    float step_f = m_Max_Step / (float)(m_Count_Vertexs_U - 1);
+    float step_f = m_Max_Step / (float)(count_U - 1);
 
     float t = 0.0f;
 
-    for (int v = 0; v < m_Count_Vertexs_V; ++v)
+    for (int v = 0; v < count_V; ++v)
     {
-        for (int u = 0; u < m_Count_Vertexs_U; ++u)
+        for (int u = 0; u < count_U; ++u)
         {
             t = 0.0f + u * step_f;
 
@@ -137,7 +148,7 @@ void Frame::Compute()
             {
                 FACE face;
 
-                getVertexIndexs(u, v, m_Count_Vertexs_U, m_Count_Vertexs_V, vert_index_for_face, face.v);
+                getVertexIndexs(u, v, count_U, count_V, face.v);
 
                 face.cx = u;
                 face.cy = v;
@@ -149,12 +160,6 @@ void Frame::Compute()
             AddVertex(cosf(t) * 200.0f, sin(t) * 200.0f);
 
             AddIndice(verts_index++);
-
-            if ((m_Close_U && u == (m_Count_Vertexs_U - 2)) ||
-                (m_Close_V && v == (m_Count_Vertexs_V - 2)))
-                continue;
-
-            vert_index_for_face++;
         }
     }
 }
@@ -251,7 +256,7 @@ void Frame::draw_face(const FACE& vFace)
     if (m_Show_Edges)
         ImGui::Text(" |       |        |");
     else
-        ImGui::Text(" |                |");
+        ImGui::Text(" |                 |");
 
     if (m_Show_Edges)
     {
@@ -263,13 +268,13 @@ void Frame::draw_face(const FACE& vFace)
     }
     else
     {
-        ImGui::Text(" |                |");
+        ImGui::Text(" |                 |");
     }
     
     if (m_Show_Edges)
         ImGui::Text(" |       |        |");
     else
-        ImGui::Text(" |                |");
+        ImGui::Text(" |                 |");
 
     ImGui::TextColored(getGoodColor(is_V00_Ok), "v%03i", vFace.v[0]); ImGui::SameLine();
     if (m_Show_Edges)
