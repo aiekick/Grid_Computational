@@ -123,8 +123,10 @@ void Frame::Compute()
     m_Edges.clear();
 
     //m_Count_Vertexs_U = ceilf(m_Max_Step / std::max(m_Sub_Step, 0.1f)) - (m_Close_U ? 1 : 0);
-    int count_U = ceilf(m_Max_Step / std::max(m_Sub_Step, 0.1f)) - (m_Close_U ? 1 : 0);
-    int count_V = m_Count_Vertexs_V - (m_Close_V ? 1 : 0);
+    int count_U = ceilf(m_Max_Step / std::max(m_Sub_Step, 0.1f));
+    int count_V = m_Count_Vertexs_V;
+
+    int vertex_count = (count_U - (m_Close_U ? 1 : 0)) * (count_V - (m_Close_V ? 1 : 0));
 
     m_Count_Faces_U = count_U - 1;
     m_Count_Faces_V = count_V - 1;
@@ -157,11 +159,17 @@ void Frame::Compute()
                 m_Faces[v * m_Count_Faces_U + u] = face;
             }
 
-            AddVertex(cosf(t) * 200.0f, sin(t) * 200.0f);
+            if ((m_Close_U && u == (count_U - 1)) ||
+                (m_Close_V && v == (count_V - 1)))
+                continue;
 
+            vertex_count--;
+            AddVertex(cosf(t) * 200.0f, sin(t) * 200.0f);
             AddIndice(verts_index++);
         }
     }
+
+    printf("Count vertex base : %i\n", vertex_count);
 }
 
 const FACE Frame::getLeftFace(const FACE& ref)
