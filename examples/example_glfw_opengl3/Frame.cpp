@@ -61,11 +61,12 @@ void Frame::getVertexIndexs(const int& cx, const int& cy, const int& sx, const i
     {
         if (m_Close_V)
         {
-            out_v[0] = cx + lx1 * (cy);
-            out_v[1] = out_v[0] + 1;
+            out_v[0] = cx + sx * cy;
+            out_v[1] = cx + sx * cy + 1;
+
             if (cy < ly2)
             {
-                out_v[3] = cx + lx1 * (cy + 1);
+                out_v[3] = cx + sx * (cy + 1);
                 out_v[2] = out_v[3] + 1;
                 return; // fast quit
             }
